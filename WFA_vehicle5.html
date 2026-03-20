@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WFA Driver Log</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0d1b2a;
+  --blue: #1a4b8c;
+  --accent: #2a7de1;
+  --light: #e8f0fb;
+  --white: #ffffff;
+  --gray: #8898aa;
+  --border: #d0dce8;
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --radius: 16px;
+  --font: 'IBM Plex Sans Thai', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: var(--font);
+  background: #0a1628;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding-bottom: 48px;
+}
+
+.app-header {
+  width: 100%;
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3a6b 100%);
+  padding: 18px 20px 16px;
+  display: flex; align-items: center; gap: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.logo-box {
+  width: 42px; height: 42px;
+  background: var(--accent); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: white; letter-spacing: 0.5px; flex-shrink: 0;
+}
+.header-text h1 { color: white; font-size: 15px; font-weight: 600; }
+.header-text p { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; }
+.plate-badge {
+  margin-left: auto;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  color: #7dd3fc; letter-spacing: 1px; white-space: nowrap;
+}
+
+.progress-wrap {
+  width: 100%; max-width: 500px;
+  padding: 14px 20px 0;
+}
+.progress-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 7px;
+}
+.progress-label { color: rgba(255,255,255,0.55); font-size: 12px; }
+.progress-count { color: var(--accent); font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.progress-track {
+  height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), #60a5fa);
+  border-radius: 99px;
+  transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
+}
+
+.card {
+  width: calc(100% - 32px); max-width: 500px;
+  background: white; border-radius: var(--radius);
+  margin: 14px 0 0; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── IN-PROGRESS WARNING ── */
+.warning-screen {
+  display: none;
+  width: calc(100% - 32px); max-width: 500px;
+  margin: 14px 0 0;
+  background: white; border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  animation: slideUp 0.3s ease;
+}
+.warning-screen.visible { display: block; }
+.warning-banner {
+  background: #fff7ed;
+  border-bottom: 3px solid var(--warn);
+  padding: 24px 24px 20px;
+  text-align: center;
+}
+.warning-icon { font-size: 44px; margin-bottom: 12px; }
+.warning-banner h2 { font-size: 18px; font-weight: 700; color: #92400e; margin-bottom: 6px; }
+.warning-banner p { font-size: 13px; color: #b45309; line-height: 1.5; }
+.warning-trip-info {
+  padding: 18px 24px;
+  background: #fafafa;
+}
+.trip-info-row {
+  display: flex; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.trip-info-row:last-child { border-bottom: none; }
+.ti-label { color: var(--gray); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+.ti-value { color: var(--navy); font-weight: 600; }
+.warning-actions {
+  padding: 16px 24px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.btn-continue {
+  width: 100%; padding: 14px;
+  background: var(--accent); color: white;
+  border: none; border-radius: 10px;
+  font-family: var(--font); font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+.btn-discard {
+  width: 100%; padding: 14px;
+  background: white; color: var(--danger);
+  border: 1.5px solid var(--danger); border-radius: 10px;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+
+.step { display: none; }
+.step.active { display: block; }
+
+.step-header {
+  background: var(--light);
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.step-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent); color: white;
+  font-size: 9px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 3px 10px; border-radius: 99px; margin-bottom: 8px;
+}
+.step-title { font-size: 19px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+.step-sub { font-size: 12px; color: var(--gray); margin-top: 3px; }
+.step-body { padding: 22px; }
+
+.field { margin-bottom: 18px; }
+.field:last-child { margin-bottom: 0; }
+label {
+  display: block;
+  font-size: 12px; font-weight: 700; color: var(--navy);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+label .th { font-weight: 400; color: var(--gray); margin-left: 6px; font-size: 12px; text-transform: none; letter-spacing: 0; }
+
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
+  width: 100%; padding: 13px 14px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-family: var(--font); font-size: 15px; color: var(--navy);
+  background: white; outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  -webkit-appearance: none; appearance: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(42,125,225,0.1);
+}
+input[readonly] {
+  background: #f0f6ff; color: var(--blue);
+  font-family: var(--mono); font-weight: 600;
+  cursor: not-allowed;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238898aa' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
+}
+textarea { resize: none; min-height: 78px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip label {
+  display: inline-flex; align-items: center;
+  padding: 9px 15px;
+  border: 1.5px solid var(--border); border-radius: 99px;
+  font-size: 13px; font-weight: 500; color: var(--navy);
+  cursor: pointer; transition: all 0.15s;
+  text-transform: none; letter-spacing: 0;
+  user-select: none; margin-bottom: 0;
+}
+.chip input:checked + label {
+  background: var(--accent); border-color: var(--accent); color: white;
+}
+
+.odo-diff {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--accent); font-weight: 600;
+  margin-top: 6px; height: 18px;
+}
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; background: var(--light); border-radius: 10px; margin-bottom: 14px;
+}
+.toggle-row span { font-size: 14px; font-weight: 500; color: var(--navy); }
+.toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; inset: 0;
+  background: var(--border); border-radius: 99px; cursor: pointer; transition: background 0.2s;
+}
+.slider:before {
+  content: ''; position: absolute;
+  width: 20px; height: 20px; left: 3px; top: 3px;
+  background: white; border-radius: 50%; transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.toggle input:checked + .slider { background: var(--accent); }
+.toggle input:checked + .slider:before { transform: translateX(18px); }
+.fuel-fields { display: none; }
+.fuel-fields.visible { display: block; }
+
+.summary-list { list-style: none; }
+.summary-list li {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.summary-list li:last-child { border-bottom: none; }
+.s-label { color: var(--gray); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; width: 42%; }
+.s-value { color: var(--navy); font-weight: 600; text-align: right; word-break: break-word; }
+.s-km { color: var(--accent); font-family: var(--mono); font-size: 17px; }
+
+.nav-wrap {
+  display: flex; gap: 10px;
+  width: calc(100% - 32px); max-width: 500px;
+  margin-top: 12px;
+}
+.btn {
+  flex: 1; padding: 15px;
+  border: none; border-radius: 10px;
+  font-family: var(--font); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-back {
+  background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6);
+  flex: 0 0 54px;
+}
+.btn-back:hover { background: rgba(255,255,255,0.12); }
+.btn-next { background: var(--accent); color: white; }
+.btn-next:active { background: #1f6dd4; transform: scale(0.98); }
+.btn-submit { background: var(--success); color: white; }
+.btn-submit:active { background: #16a34a; transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; pointer-events: none; }
+
+.success-screen {
+  display: none;
+  width: calc(100% - 32px); max-width: 500px;
+  margin: 14px 0 0;
+  background: white; border-radius: var(--radius);
+  padding: 44px 28px; text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  animation: slideUp 0.3s ease;
+}
+.success-screen.visible { display: block; }
+.success-icon {
+  width: 68px; height: 68px; background: #dcfce7;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px; font-size: 30px;
+}
+.success-screen h2 { font-size: 21px; color: var(--navy); margin-bottom: 6px; }
+.success-screen p { color: var(--gray); font-size: 13px; line-height: 1.6; }
+.ref-code {
+  margin: 18px auto;
+  background: var(--light); border-radius: 10px; padding: 13px 20px;
+  font-family: var(--mono); font-size: 17px; font-weight: 600;
+  color: var(--accent); letter-spacing: 2px;
+}
+.btn-new {
+  margin-top: 4px; background: var(--accent); color: white;
+  border: none; border-radius: 10px;
+  padding: 13px 28px; font-family: var(--font); font-size: 15px; font-weight: 600;
+  cursor: pointer; width: 100%;
+}
+
+.err { color: #e53e3e; font-size: 11px; margin-top: 4px; display: none; }
+.field.invalid input, .field.invalid select, .field.invalid textarea { border-color: #e53e3e; }
+.field.invalid .err { display: block; }
+
+.spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo-box">WFA</div>
+  <div class="header-text">
+    <h1>Driver Logbook</h1>
+    <p>สมุดบันทึกการขับรถ</p>
+  </div>
+  <div class="plate-badge" id="headerPlate">2กฉ776 — TOYOTA Vios</div>
+</div>
+
+<div class="progress-wrap" id="progressWrap" style="display:none">
+  <div class="progress-meta">
+    <span class="progress-label" id="stepLabel">—</span>
+    <span class="progress-count" id="stepCount">1 / 4</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:25%"></div>
+  </div>
+</div>
+
+<!-- ── IN-PROGRESS WARNING ── -->
+<div class="warning-screen" id="warningScreen">
+  <div class="warning-banner">
+    <div class="warning-icon">⚠️</div>
+    <h2>Trip Still In Progress!</h2>
+    <p>ยังมีการเดินทางที่ยังไม่เสร็จสิ้น<br>A trip was not completed yet. Please finish it first.</p>
+  </div>
+  <div class="warning-trip-info">
+    <div class="trip-info-row">
+      <span class="ti-label">Driver / ผู้ขับ</span>
+      <span class="ti-value" id="wi-driver">—</span>
+    </div>
+    <div class="trip-info-row">
+      <span class="ti-label">Started / เริ่มเมื่อ</span>
+      <span class="ti-value" id="wi-time">—</span>
+    </div>
+    <div class="trip-info-row">
+      <span class="ti-label">Destination / ปลายทาง</span>
+      <span class="ti-value" id="wi-dest">—</span>
+    </div>
+  </div>
+  <div class="warning-actions">
+    <button class="btn-continue" onclick="continueTrip()">▶ Continue This Trip / ดำเนินการต่อ</button>
+    <button class="btn-discard" onclick="discardTrip()">✕ Discard & Start New / ยกเลิกและเริ่มใหม่</button>
+  </div>
+</div>
+
+<!-- ── FORM CARD ── -->
+<div class="card" id="formCard" style="display:none">
+
+  <!-- STEP 1 -->
+  <div class="step active" id="step1">
+    <div class="step-header">
+      <div class="step-tag">🚗 Step 1 of 4</div>
+      <div class="step-title">Departure Info</div>
+      <div class="step-sub">ข้อมูลการออกเดินทาง</div>
+    </div>
+    <div class="step-body">
+      <div class="field">
+        <label>Vehicle / Plate <span class="th">ทะเบียนรถ</span></label>
+        <input type="text" id="plate" readonly value="2กฉ776 — TOYOTA Vios">
+      </div>
+      <div class="field" id="f-driver">
+        <label>Driver Name <span class="th">ชื่อผู้ขับ</span></label>
+        <input type="text" id="driverName" placeholder="Full name / ชื่อ-สกุล" autocomplete="name">
+        <div class="err">Please enter driver name / กรุณากรอกชื่อผู้ขับ</div>
+      </div>
+      <div class="row-2">
+        <div class="field" id="f-date">
+          <label>Date <span class="th">วันที่</span></label>
+          <input type="date" id="tripDate">
+          <div class="err">Required</div>
+        </div>
+        <div class="field" id="f-deptime">
+          <label>Departure <span class="th">เวลาออก</span></label>
+          <input type="time" id="depTime">
+          <div class="err">Required</div>
+        </div>
+      </div>
+      <div class="field" id="f-odostart">
+        <label>Odometer Start (km) <span class="th">เลขไมล์ตอนออก</span></label>
+        <input type="number" id="odoStart" placeholder="e.g. 45230" min="0">
+        <div class="err">Required</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step2">
+    <div class="step-header">
+      <div class="step-tag">📍 Step 2 of 4</div>
+      <div class="step-title">Trip Details</div>
+      <div class="step-sub">รายละเอียดการเดินทาง</div>
+    </div>
+    <div class="step-body">
+      <div class="field" id="f-dest">
+        <label>Destination / Route <span class="th">ปลายทาง / เส้นทาง</span></label>
+        <input type="text" id="destination" placeholder="e.g. Lat Krabang Industrial Estate">
+        <div class="err">Please enter destination / กรุณากรอกปลายทาง</div>
+      </div>
+      <div class="field" id="f-purpose">
+        <label>Trip Purpose <span class="th">วัตถุประสงค์</span></label>
+        <div class="chips">
+          <div class="chip"><input type="radio" name="purpose" id="p1" value="Business / ธุรกิจ"><label for="p1">Business / ธุรกิจ</label></div>
+          <div class="chip"><input type="radio" name="purpose" id="p2" value="Site Visit / เยี่ยมไซต์งาน"><label for="p2">Site Visit / เยี่ยมไซต์</label></div>
+          <div class="chip"><input type="radio" name="purpose" id="p3" value="Delivery / ส่งของ"><label for="p3">Delivery / ส่งของ</label></div>
+          <div class="chip"><input type="radio" name="purpose" id="p4" value="Client Meeting / พบลูกค้า"><label for="p4">Client Meeting</label></div>
+          <div class="chip"><input type="radio" name="purpose" id="p5" value="Internal / ภายใน"><label for="p5">Internal / ภายใน</label></div>
+          <div class="chip"><input type="radio" name="purpose" id="p6" value="Private / ส่วนตัว"><label for="p6">Private / ส่วนตัว</label></div>
+        </div>
+        <div class="err">Please select a purpose / กรุณาเลือกวัตถุประสงค์</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step3">
+    <div class="step-header">
+      <div class="step-tag">🏁 Step 3 of 4</div>
+      <div class="step-title">Return & Fuel</div>
+      <div class="step-sub">กลับถึงที่และน้ำมัน</div>
+    </div>
+    <div class="step-body">
+      <div class="field" id="f-rettime">
+        <label>Return Time <span class="th">เวลากลับถึง</span></label>
+        <input type="time" id="retTime">
+        <div class="err">Required</div>
+      </div>
+      <div class="field" id="f-odoend">
+        <label>Odometer End (km) <span class="th">เลขไมล์ตอนกลับ</span></label>
+        <input type="number" id="odoEnd" placeholder="e.g. 45410" min="0">
+        <div class="odo-diff" id="odoDiff"></div>
+        <div class="err">Must be greater than start / ต้องมากกว่าตอนออก</div>
+      </div>
+      <div class="toggle-row">
+        <span>⛽ Fuel added? / เติมน้ำมัน?</span>
+        <label class="toggle">
+          <input type="checkbox" id="fuelToggle" onchange="toggleFuel()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="fuel-fields" id="fuelFields">
+        <div class="row-2">
+          <div class="field">
+            <label>Litres <span class="th">ลิตร</span></label>
+            <input type="number" id="fuelL" placeholder="0.0" min="0" step="0.1">
+          </div>
+          <div class="field">
+            <label>Cost (THB) <span class="th">บาท</span></label>
+            <input type="number" id="fuelCost" placeholder="0" min="0">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Remarks <span class="th">หมายเหตุ</span></label>
+        <textarea id="remarks" placeholder="Optional notes / หมายเหตุ (ถ้ามี)"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step4">
+    <div class="step-header">
+      <div class="step-tag">✅ Step 4 of 4</div>
+      <div class="step-title">Confirm & Submit</div>
+      <div class="step-sub">ยืนยันและส่งข้อมูล</div>
+    </div>
+    <div class="step-body">
+      <ul class="summary-list" id="summaryList"></ul>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<div class="nav-wrap" id="navWrap" style="display:none">
+  <button class="btn btn-back" id="btnBack" onclick="goBack()" style="display:none">←</button>
+  <button class="btn btn-next" id="btnNext" onclick="goNext()">Next →</button>
+</div>
+
+<!-- SUCCESS -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✓</div>
+  <h2>Trip Logged!</h2>
+  <p>Entry saved to logbook.<br>บันทึกข้อมูลเรียบร้อยแล้ว</p>
+  <div class="ref-code" id="refCode">—</div>
+  <button class="btn-new" onclick="resetForm()">+ Log Another Trip</button>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_URL";
+const PLATE = "2กฉ776 — TOYOTA Vios";
+const STORAGE_KEY = "wfa_trip_" + PLATE;
+
+document.getElementById("headerPlate").textContent = PLATE;
+document.title = "WFA Log — " + PLATE;
+
+// ── ON LOAD: check for in-progress trip ──────────────────────────────────────
+window.addEventListener("load", () => {
+  const saved = getSavedTrip();
+  if (saved) {
+    // Show warning screen
+    document.getElementById("wi-driver").textContent = saved.driverName || "—";
+    document.getElementById("wi-time").textContent   = (saved.tripDate || "") + " " + (saved.depTime || "");
+    document.getElementById("wi-dest").textContent   = saved.destination || "Not yet entered";
+    document.getElementById("warningScreen").classList.add("visible");
+  } else {
+    startFreshForm();
+  }
+});
+
+function getSavedTrip() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    return d ? JSON.parse(d) : null;
+  } catch(e) { return null; }
+}
+
+function saveTrip() {
+  const data = {
+    driverName:  document.getElementById("driverName").value,
+    tripDate:    document.getElementById("tripDate").value,
+    depTime:     document.getElementById("depTime").value,
+    odoStart:    document.getElementById("odoStart").value,
+    destination: document.getElementById("destination").value,
+    purpose:     document.querySelector('input[name="purpose"]:checked')?.value || "",
+    retTime:     document.getElementById("retTime").value,
+    odoEnd:      document.getElementById("odoEnd").value,
+    fuelToggle:  document.getElementById("fuelToggle").checked,
+    fuelL:       document.getElementById("fuelL").value,
+    fuelCost:    document.getElementById("fuelCost").value,
+    remarks:     document.getElementById("remarks").value,
+    currentStep: currentStep,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function clearSavedTrip() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+function continueTrip() {
+  const saved = getSavedTrip();
+  if (!saved) { startFreshForm(); return; }
+  document.getElementById("warningScreen").classList.remove("visible");
+  showFormUI();
+  // Restore all fields
+  document.getElementById("driverName").value  = saved.driverName || "";
+  document.getElementById("tripDate").value    = saved.tripDate || "";
+  document.getElementById("depTime").value     = saved.depTime || "";
+  document.getElementById("odoStart").value    = saved.odoStart || "";
+  document.getElementById("destination").value = saved.destination || "";
+  if (saved.purpose) {
+    const r = document.querySelector(`input[name="purpose"][value="${saved.purpose}"]`);
+    if (r) r.checked = true;
+  }
+  document.getElementById("retTime").value  = saved.retTime || "";
+  document.getElementById("odoEnd").value   = saved.odoEnd || "";
+  document.getElementById("fuelToggle").checked = saved.fuelToggle || false;
+  if (saved.fuelToggle) document.getElementById("fuelFields").classList.add("visible");
+  document.getElementById("fuelL").value    = saved.fuelL || "";
+  document.getElementById("fuelCost").value = saved.fuelCost || "";
+  document.getElementById("remarks").value  = saved.remarks || "";
+  currentStep = saved.currentStep || 1;
+  updateOdoDiff();
+  showStep(currentStep);
+}
+
+function discardTrip() {
+  if (confirm("Are you sure? The current trip data will be lost.\nแน่ใจหรือไม่? ข้อมูลการเดินทางจะถูกลบ")) {
+    clearSavedTrip();
+    document.getElementById("warningScreen").classList.remove("visible");
+    startFreshForm();
+  }
+}
+
+function startFreshForm() {
+  showFormUI();
+  const now = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  document.getElementById("tripDate").value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById("depTime").value  = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  currentStep = 1;
+  showStep(1);
+}
+
+function showFormUI() {
+  document.getElementById("formCard").style.display = "";
+  document.getElementById("navWrap").style.display = "";
+  document.getElementById("progressWrap").style.display = "";
+}
+
+// ── STEP LOGIC ────────────────────────────────────────────────────────────────
+let currentStep = 1;
+const totalSteps = 4;
+const stepLabels = ["Departure Info","Trip Details","Return & Fuel","Confirm & Submit"];
+
+function updateProgress() {
+  document.getElementById("progressFill").style.width = (currentStep / totalSteps * 100) + "%";
+  document.getElementById("stepCount").textContent = currentStep + " / " + totalSteps;
+  document.getElementById("stepLabel").textContent = stepLabels[currentStep - 1];
+  document.getElementById("btnBack").style.display = currentStep > 1 ? "flex" : "none";
+  const btn = document.getElementById("btnNext");
+  if (currentStep === totalSteps) {
+    btn.className = "btn btn-submit";
+    btn.textContent = "Submit / ส่งข้อมูล ✓";
+  } else {
+    btn.className = "btn btn-next";
+    btn.textContent = "Next →";
+  }
+}
+
+function showStep(n) {
+  document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+  document.getElementById("step" + n).classList.add("active");
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ── VALIDATION ────────────────────────────────────────────────────────────────
+function clearErrors() {
+  document.querySelectorAll(".field.invalid").forEach(f => f.classList.remove("invalid"));
+}
+function validateStep(n) {
+  clearErrors(); let ok = true;
+  function fail(id) { document.getElementById(id).classList.add("invalid"); ok = false; }
+  if (n === 1) {
+    if (!document.getElementById("driverName").value.trim()) fail("f-driver");
+    if (!document.getElementById("tripDate").value) fail("f-date");
+    if (!document.getElementById("depTime").value) fail("f-deptime");
+    if (!document.getElementById("odoStart").value) fail("f-odostart");
+  }
+  if (n === 2) {
+    if (!document.getElementById("destination").value.trim()) fail("f-dest");
+    if (!document.querySelector('input[name="purpose"]:checked')) fail("f-purpose");
+  }
+  if (n === 3) {
+    if (!document.getElementById("retTime").value) fail("f-rettime");
+    const s = parseFloat(document.getElementById("odoStart").value);
+    const e = parseFloat(document.getElementById("odoEnd").value);
+    if (!document.getElementById("odoEnd").value || e <= s) fail("f-odoend");
+  }
+  return ok;
+}
+
+function updateOdoDiff() {
+  const s = parseFloat(document.getElementById("odoStart").value);
+  const e = parseFloat(document.getElementById("odoEnd").value);
+  const el = document.getElementById("odoDiff");
+  el.textContent = (e > s && s) ? "→ " + (e - s).toLocaleString() + " km this trip" : "";
+}
+document.getElementById("odoEnd").addEventListener("input", updateOdoDiff);
+
+// Auto-save on any input change
+document.querySelectorAll("input, select, textarea").forEach(el => {
+  el.addEventListener("change", saveTrip);
+  el.addEventListener("input", saveTrip);
+});
+
+function toggleFuel() {
+  document.getElementById("fuelFields").classList.toggle("visible", document.getElementById("fuelToggle").checked);
+  saveTrip();
+}
+
+function buildSummary() {
+  const s = parseFloat(document.getElementById("odoStart").value) || 0;
+  const e = parseFloat(document.getElementById("odoEnd").value) || 0;
+  const fuelOn = document.getElementById("fuelToggle").checked;
+  const rows = [
+    ["Vehicle / ทะเบียน", PLATE],
+    ["Driver / ผู้ขับ", document.getElementById("driverName").value],
+    ["Date / วันที่", document.getElementById("tripDate").value],
+    ["Departure / ออก", document.getElementById("depTime").value],
+    ["Return / กลับ", document.getElementById("retTime").value],
+    ["Odometer / ไมล์", s.toLocaleString() + " → " + e.toLocaleString() + " km"],
+    ["Distance / ระยะทาง", `<span class="s-km">${(e-s).toLocaleString()} km</span>`],
+    ["Destination / ปลายทาง", document.getElementById("destination").value],
+    ["Purpose / วัตถุประสงค์", document.querySelector('input[name="purpose"]:checked')?.value || "—"],
+    fuelOn ? ["Fuel / น้ำมัน", `${document.getElementById("fuelL").value||0} L — ฿${document.getElementById("fuelCost").value||0}`] : null,
+    document.getElementById("remarks").value ? ["Remarks / หมายเหตุ", document.getElementById("remarks").value] : null,
+  ].filter(Boolean);
+  document.getElementById("summaryList").innerHTML = rows.map(([k,v]) =>
+    `<li><span class="s-label">${k}</span><span class="s-value">${v}</span></li>`
+  ).join("");
+}
+
+function goNext() {
+  if (!validateStep(currentStep)) return;
+  if (currentStep < totalSteps) {
+    currentStep++;
+    saveTrip();
+    if (currentStep === totalSteps) buildSummary();
+    showStep(currentStep);
+  } else {
+    submitForm();
+  }
+}
+function goBack() {
+  if (currentStep > 1) { currentStep--; showStep(currentStep); }
+}
+
+async function submitForm() {
+  const btn = document.getElementById("btnNext");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  const s = parseFloat(document.getElementById("odoStart").value) || 0;
+  const e = parseFloat(document.getElementById("odoEnd").value) || 0;
+  const fuelOn = document.getElementById("fuelToggle").checked;
+  const ref = PLATE.replace(/\s/g,"") + "-" + Date.now().toString(36).toUpperCase().slice(-5);
+  const payload = {
+    ref, plate: PLATE,
+    driver:      document.getElementById("driverName").value.trim(),
+    date:        document.getElementById("tripDate").value,
+    depTime:     document.getElementById("depTime").value,
+    retTime:     document.getElementById("retTime").value,
+    odoStart: s, odoEnd: e, distance: e - s,
+    destination: document.getElementById("destination").value.trim(),
+    purpose:     document.querySelector('input[name="purpose"]:checked')?.value || "",
+    fuelL:       fuelOn ? (document.getElementById("fuelL").value || 0) : 0,
+    fuelCost:    fuelOn ? (document.getElementById("fuelCost").value || 0) : 0,
+    remarks:     document.getElementById("remarks").value.trim(),
+    timestamp:   new Date().toISOString(),
+  };
+  try {
+    if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_URL") {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST", mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+  } catch(err) { console.error(err); }
+  clearSavedTrip();
+  showSuccess(ref);
+}
+
+function showSuccess(ref) {
+  document.getElementById("formCard").style.display = "none";
+  document.getElementById("navWrap").style.display = "none";
+  document.getElementById("progressWrap").style.display = "none";
+  document.getElementById("successScreen").classList.add("visible");
+  document.getElementById("refCode").textContent = ref;
+}
+
+function resetForm() {
+  document.getElementById("successScreen").classList.remove("visible");
+  document.getElementById("driverName").value = "";
+  document.getElementById("destination").value = "";
+  document.getElementById("odoStart").value = "";
+  document.getElementById("odoEnd").value = "";
+  document.getElementById("retTime").value = "";
+  document.getElementById("fuelL").value = "";
+  document.getElementById("fuelCost").value = "";
+  document.getElementById("remarks").value = "";
+  document.getElementById("fuelToggle").checked = false;
+  document.getElementById("fuelFields").classList.remove("visible");
+  document.getElementById("odoDiff").textContent = "";
+  document.querySelectorAll('input[name="purpose"]').forEach(r => r.checked = false);
+  document.getElementById("btnNext").disabled = false;
+  clearErrors();
+  startFreshForm();
+}
+</script>
+</body>
+</html>
